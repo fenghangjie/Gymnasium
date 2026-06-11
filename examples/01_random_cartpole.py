@@ -8,7 +8,7 @@ def main() -> None:
 
     observation, info = env.reset(seed=42)
     total_reward = 0.0
-
+    print()
     print("Observation space:", env.observation_space)
     print("Action space:", env.action_space)
     print("Initial observation:", observation)
