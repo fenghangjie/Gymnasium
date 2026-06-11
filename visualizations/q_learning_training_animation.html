@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FrozenLake Q 表训练过程动画</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #0d1117;
+      color: #f0f6fc;
+      font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+    }
+
+    main {
+      width: min(1240px, calc(100vw - 32px));
+      margin: 22px auto;
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 16px;
+    }
+
+    header {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: end;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.25;
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      color: #9fb0c3;
+      font-size: 15px;
+    }
+
+    .panel {
+      border: 1px solid #2a3441;
+      border-radius: 8px;
+      background: #151b23;
+      padding: 16px;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
+    }
+
+    .lake {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      aspect-ratio: 1;
+    }
+
+    .cell {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      border: 1px solid #2a3441;
+      border-radius: 7px;
+      background: #152537;
+      overflow: hidden;
+    }
+
+    .cell.start {
+      border-color: #6cc24a;
+      background: rgba(108, 194, 74, 0.16);
+    }
+
+    .cell.hole {
+      border-color: #ef5b5b;
+      background: rgba(239, 91, 91, 0.14);
+      color: #ffb7b7;
+    }
+
+    .cell.goal {
+      border-color: #f2b84b;
+      background: rgba(242, 184, 75, 0.18);
+      color: #ffe0a1;
+    }
+
+    .cell.active {
+      outline: 4px solid rgba(108, 194, 74, 0.45);
+      outline-offset: -4px;
+    }
+
+    .state-id {
+      position: absolute;
+      top: 6px;
+      left: 7px;
+      color: #9fb0c3;
+      font-size: 12px;
+      font-family: Consolas, monospace;
+      font-weight: 700;
+    }
+
+    .kind {
+      font-size: 25px;
+      font-weight: 900;
+    }
+
+    .best-action {
+      position: absolute;
+      right: 7px;
+      bottom: 5px;
+      color: #6cc24a;
+      font-size: 12px;
+      font-family: Consolas, monospace;
+      font-weight: 800;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      border: 1px solid #2a3441;
+      border-radius: 7px;
+      padding: 11px;
+      background: #0f1620;
+    }
+
+    .metric span {
+      display: block;
+      color: #9fb0c3;
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .metric strong {
+      display: block;
+      color: #f0f6fc;
+      font-family: Consolas, monospace;
+      font-size: 20px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 14px;
+    }
+
+    button {
+      min-height: 36px;
+      border: 1px solid #38506b;
+      border-radius: 7px;
+      background: #0f1620;
+      color: #f0f6fc;
+      padding: 0 13px;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: #6cc24a;
+      border-color: #6cc24a;
+      color: #0d1117;
+      font-weight: 800;
+    }
+
+    input[type="range"] {
+      flex: 1;
+    }
+
+    .table-wrap {
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    th,
+    td {
+      border: 1px solid #2a3441;
+      padding: 8px 10px;
+      text-align: right;
+      font-size: 13px;
+    }
+
+    th {
+      color: #9fb0c3;
+      background: #0f1620;
+      font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+      text-align: center;
+    }
+
+    td:first-child {
+      color: #9fb0c3;
+      text-align: center;
+      font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+      font-weight: 800;
+    }
+
+    td.best {
+      color: #0d1117;
+      background: #6cc24a;
+      font-weight: 900;
+    }
+
+    .note {
+      margin: 14px 0 0;
+      color: #c7d2df;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>FrozenLake 训练时 Q 表如何变化</h1>
+        <p class="subtitle">从 episode 0 的全 0，到终点附近先变亮，再逐步传回起点。</p>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="lake" id="lake"></div>
+      <p class="note">每个格子右下角显示当前 state 下 Q 值最大的动作。绿色轮廓表示这个 state 已经学到了非零价值。</p>
+      <div class="controls">
+        <button class="primary" id="playButton">播放</button>
+        <button id="prevButton">上一帧</button>
+        <button id="nextButton">下一帧</button>
+      </div>
+      <div class="controls">
+        <input id="snapshotSlider" type="range" min="0" max="0" value="0">
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="metrics">
+        <div class="metric"><span>episode</span><strong id="episodeValue">0</strong></div>
+        <div class="metric"><span>epsilon</span><strong id="epsilonValue">1.0000</strong></div>
+        <div class="metric"><span>training wins</span><strong id="winsValue">0</strong></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>state</th>
+              <th>left</th>
+              <th>down</th>
+              <th>right</th>
+              <th>up</th>
+            </tr>
+          </thead>
+          <tbody id="qRows"></tbody>
+        </table>
+      </div>
+      <p class="note">Q 表不是整体求和用的。真正有意义的是：在当前 state 的这一行里，选 Q 值最大的 action。</p>
+    </section>
+  </main>
+
+  <script>
+    const fallbackData = {
+      actions: ["left", "down", "right", "up"],
+      map: ["SFFF", "FHFH", "FFFH", "HFFG"],
+      snapshots: [
+        {
+          episode: 0,
+          epsilon: 1,
+          training_wins: 0,
+          q_table: Array.from({ length: 16 }, () => [0, 0, 0, 0]),
+        },
+      ],
+    };
+
+    let data = fallbackData;
+    let index = 0;
+    let timer = null;
+
+    const lake = document.querySelector("#lake");
+    const qRows = document.querySelector("#qRows");
+    const slider = document.querySelector("#snapshotSlider");
+    const playButton = document.querySelector("#playButton");
+
+    function format(value) {
+      return Number(value).toFixed(2);
+    }
+
+    function mapCells() {
+      return data.map.join("").split("");
+    }
+
+    function bestAction(row) {
+      const maxValue = Math.max(...row);
+      if (maxValue <= 0) {
+        return "";
+      }
+      return data.actions[row.indexOf(maxValue)];
+    }
+
+    function renderLake(snapshot) {
+      lake.innerHTML = "";
+      mapCells().forEach((kind, state) => {
+        const row = snapshot.q_table[state];
+        const maxValue = Math.max(...row);
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        if (kind === "S") cell.classList.add("start");
+        if (kind === "H") cell.classList.add("hole");
+        if (kind === "G") cell.classList.add("goal");
+        if (maxValue > 0) cell.classList.add("active");
+
+        const stateId = document.createElement("div");
+        stateId.className = "state-id";
+        stateId.textContent = state;
+        cell.appendChild(stateId);
+
+        const label = document.createElement("div");
+        label.className = "kind";
+        label.textContent = kind;
+        cell.appendChild(label);
+
+        const action = document.createElement("div");
+        action.className = "best-action";
+        action.textContent = bestAction(row);
+        cell.appendChild(action);
+
+        lake.appendChild(cell);
+      });
+    }
+
+    function renderTable(snapshot) {
+      qRows.innerHTML = "";
+      snapshot.q_table.forEach((row, state) => {
+        const tr = document.createElement("tr");
+        const stateCell = document.createElement("td");
+        stateCell.textContent = state;
+        tr.appendChild(stateCell);
+
+        const maxValue = Math.max(...row);
+        row.forEach((value) => {
+          const td = document.createElement("td");
+          td.textContent = format(value);
+          if (maxValue > 0 && value === maxValue) {
+            td.classList.add("best");
+          }
+          tr.appendChild(td);
+        });
+
+        qRows.appendChild(tr);
+      });
+    }
+
+    function render() {
+      const snapshot = data.snapshots[index];
+      document.querySelector("#episodeValue").textContent = snapshot.episode;
+      document.querySelector("#epsilonValue").textContent = Number(snapshot.epsilon).toFixed(4);
+      document.querySelector("#winsValue").textContent = snapshot.training_wins;
+      slider.value = index;
+      renderLake(snapshot);
+      renderTable(snapshot);
+    }
+
+    function next() {
+      index = (index + 1) % data.snapshots.length;
+      render();
+    }
+
+    function prev() {
+      index = (index - 1 + data.snapshots.length) % data.snapshots.length;
+      render();
+    }
+
+    function togglePlay() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+        playButton.textContent = "播放";
+        return;
+      }
+      timer = setInterval(next, 1300);
+      playButton.textContent = "暂停";
+    }
+
+    async function loadData() {
+      try {
+        const response = await fetch("q_learning_training_snapshots.json");
+        if (response.ok) {
+          data = await response.json();
+        }
+      } catch (error) {
+        console.warn("Using fallback Q-table data.", error);
+      }
+
+      slider.max = data.snapshots.length - 1;
+      render();
+    }
+
+    playButton.addEventListener("click", togglePlay);
+    document.querySelector("#nextButton").addEventListener("click", next);
+    document.querySelector("#prevButton").addEventListener("click", prev);
+    slider.addEventListener("input", (event) => {
+      index = Number(event.target.value);
+      render();
+    });
+
+    loadData();
+  </script>
+</body>
+</html>

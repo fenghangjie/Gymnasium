@@ -89,6 +89,26 @@ visualizations/q_learning_update_animation.html
 - `best_next_value` 如何把未来价值传回当前状态
 - `old_value` 如何逐步靠近 `learned_value`
 
+### 动画演示：训练时的 Q 表变化
+
+先运行训练脚本，它会打印训练过程中的 Q 表，并导出动画数据：
+
+```powershell
+D:\Software\anaconda3\envs\robot\python.exe examples/02_frozenlake_q_learning.py
+```
+
+然后打开：
+
+```powershell
+visualizations/q_learning_training_animation.html
+```
+
+重点看：
+
+- `episode=0` 时 Q 表全部是 0
+- 终点附近的 Q 值先变大
+- 更早状态的 Q 值随着训练逐步变大
+
 ### 动画演示：强化学习整体流程
 
 打开：
