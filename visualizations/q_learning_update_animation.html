@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Q-learning 更新动画</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --ink: #20242a;
+      --muted: #69717d;
+      --line: #d8dde5;
+      --start: #6aa84f;
+      --hole: #252a31;
+      --goal: #d5a11e;
+      --agent: #1e88e5;
+      --active: #ef6c00;
+      --good: #2e7d32;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 24px auto;
+      display: grid;
+      grid-template-columns: minmax(360px, 520px) 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    h1 {
+      grid-column: 1 / -1;
+      margin: 0 0 4px;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      grid-column: 1 / -1;
+      margin: -4px 0 8px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(31, 41, 55, 0.06);
+    }
+
+    .lake {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      aspect-ratio: 1;
+    }
+
+    .cell {
+      position: relative;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #e9f3ff;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .cell.start {
+      background: #eaf5e5;
+    }
+
+    .cell.hole {
+      background: var(--hole);
+      color: white;
+    }
+
+    .cell.goal {
+      background: #fff3c4;
+    }
+
+    .cell.active {
+      outline: 4px solid rgba(239, 108, 0, 0.35);
+      outline-offset: -4px;
+    }
+
+    .state-id {
+      position: absolute;
+      top: 7px;
+      left: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .cell.hole .state-id {
+      color: #c5ccd6;
+    }
+
+    .label {
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .agent {
+      position: absolute;
+      width: 40%;
+      aspect-ratio: 1;
+      border-radius: 999px;
+      background: var(--agent);
+      border: 4px solid white;
+      box-shadow: 0 8px 18px rgba(30, 136, 229, 0.35);
+      display: grid;
+      place-items: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .q-mini {
+      position: absolute;
+      right: 6px;
+      bottom: 5px;
+      color: #3e4650;
+      font-family: Consolas, monospace;
+      font-size: 11px;
+      text-align: right;
+      line-height: 1.25;
+    }
+
+    .cell.hole .q-mini {
+      color: #aab3bf;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      min-height: 38px;
+      border: 1px solid #b9c3cf;
+      background: #fff;
+      color: var(--ink);
+      border-radius: 6px;
+      padding: 0 14px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: #1e88e5;
+      border-color: #1e88e5;
+      color: white;
+      font-weight: 700;
+    }
+
+    button:hover {
+      filter: brightness(0.97);
+    }
+
+    .speed {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    input[type="range"] {
+      width: 130px;
+    }
+
+    .formula {
+      display: grid;
+      gap: 10px;
+    }
+
+    .line {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px;
+      background: #fbfcfe;
+    }
+
+    .line.active {
+      border-color: var(--active);
+      background: #fff8f0;
+    }
+
+    .code {
+      display: block;
+      margin-bottom: 6px;
+      font-family: Consolas, monospace;
+      font-size: 15px;
+      white-space: normal;
+    }
+
+    .explain {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .numbers {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 12px;
+      background: #fff;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 3px;
+    }
+
+    .metric strong {
+      font-family: Consolas, monospace;
+      font-size: 18px;
+    }
+
+    .q-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 13px;
+    }
+
+    .q-table th,
+    .q-table td {
+      border: 1px solid var(--line);
+      padding: 7px 8px;
+      text-align: right;
+      font-family: Consolas, monospace;
+    }
+
+    .q-table th {
+      background: #f1f4f8;
+      color: #46515f;
+      font-family: inherit;
+      text-align: center;
+    }
+
+    .q-table td:first-child {
+      text-align: center;
+      color: var(--muted);
+      font-family: inherit;
+      font-weight: 700;
+    }
+
+    .changed {
+      color: var(--good);
+      font-weight: 800;
+    }
+
+    @media (max-width: 860px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Q-learning 更新动画</h1>
+    <p class="subtitle">每一步都对应代码里的四行：看未来最好价值、取旧值、算目标值、更新 Q 表。</p>
+
+    <section class="panel">
+      <div class="lake" id="lake"></div>
+      <div class="controls">
+        <button class="primary" id="playButton">播放</button>
+        <button id="stepButton">下一步</button>
+        <button id="resetButton">重置</button>
+        <label class="speed">
+          速度
+          <input id="speedInput" type="range" min="400" max="1800" step="100" value="1000">
+        </label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="formula">
+        <div class="line" id="line0">
+          <code class="code">best_next_value = np.max(q_table[next_state])</code>
+          <div class="explain">看下一格里 4 个动作的 Q 值，取最大的那个，表示“到了下一格以后，未来最好的价值”。</div>
+        </div>
+        <div class="line" id="line1">
+          <code class="code">old_value = q_table[state, action]</code>
+          <div class="explain">取出当前格子执行当前动作的旧 Q 值，也就是旧经验。</div>
+        </div>
+        <div class="line" id="line2">
+          <code class="code">learned_value = reward + gamma * best_next_value</code>
+          <div class="explain">用当前奖励加上折扣后的未来价值，算出这次经验给出的目标值。</div>
+        </div>
+        <div class="line" id="line3">
+          <code class="code">q_table[state, action] = old_value + alpha * (learned_value - old_value)</code>
+          <div class="explain">把旧 Q 值向目标值靠近一点。alpha 越大，越相信这次新经验。</div>
+        </div>
+      </div>
+
+      <div class="numbers">
+        <div class="metric"><span>state</span><strong id="stateValue">14</strong></div>
+        <div class="metric"><span>action</span><strong id="actionValue">right</strong></div>
+        <div class="metric"><span>next_state</span><strong id="nextStateValue">15</strong></div>
+        <div class="metric"><span>reward</span><strong id="rewardValue">1.00</strong></div>
+        <div class="metric"><span>best_next_value</span><strong id="bestNextValue">0.00</strong></div>
+        <div class="metric"><span>learned_value</span><strong id="learnedValue">1.00</strong></div>
+        <div class="metric"><span>old_value</span><strong id="oldValue">0.00</strong></div>
+        <div class="metric"><span>new Q value</span><strong id="newValue">0.80</strong></div>
+      </div>
+
+      <table class="q-table">
+        <thead>
+          <tr>
+            <th>state</th>
+            <th>left</th>
+            <th>down</th>
+            <th>right</th>
+            <th>up</th>
+          </tr>
+        </thead>
+        <tbody id="qRows"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    const layout = [
+      "S", "F", "F", "F",
+      "F", "H", "F", "H",
+      "F", "F", "F", "H",
+      "H", "F", "F", "G",
+    ];
+
+    const actions = ["left", "down", "right", "up"];
+    const actionIndex = { left: 0, down: 1, right: 2, up: 3 };
+    const alpha = 0.8;
+    const gamma = 0.95;
+
+    const transitions = [
+      { state: 14, action: "right", nextState: 15, reward: 1 },
+      { state: 13, action: "right", nextState: 14, reward: 0 },
+      { state: 9, action: "down", nextState: 13, reward: 0 },
+      { state: 8, action: "right", nextState: 9, reward: 0 },
+      { state: 4, action: "down", nextState: 8, reward: 0 },
+      { state: 0, action: "down", nextState: 4, reward: 0 },
+      { state: 0, action: "right", nextState: 1, reward: 0 },
+      { state: 1, action: "right", nextState: 2, reward: 0 },
+      { state: 2, action: "down", nextState: 6, reward: 0 },
+      { state: 6, action: "down", nextState: 10, reward: 0 },
+      { state: 10, action: "down", nextState: 14, reward: 0 },
+    ];
+
+    let qTable = Array.from({ length: 16 }, () => [0, 0, 0, 0]);
+    let currentTransitionIndex = 0;
+    let currentLineIndex = 0;
+    let timer = null;
+    let lastChanged = null;
+
+    const lake = document.querySelector("#lake");
+    const qRows = document.querySelector("#qRows");
+    const playButton = document.querySelector("#playButton");
+    const stepButton = document.querySelector("#stepButton");
+    const resetButton = document.querySelector("#resetButton");
+    const speedInput = document.querySelector("#speedInput");
+
+    function format(value) {
+      return Number(value).toFixed(2);
+    }
+
+    function currentTransition() {
+      return transitions[currentTransitionIndex % transitions.length];
+    }
+
+    function computeValues(transition) {
+      const column = actionIndex[transition.action];
+      const bestNextValue = Math.max(...qTable[transition.nextState]);
+      const oldValue = qTable[transition.state][column];
+      const learnedValue = transition.reward + gamma * bestNextValue;
+      const newValue = oldValue + alpha * (learnedValue - oldValue);
+      return { column, bestNextValue, oldValue, learnedValue, newValue };
+    }
+
+    function renderLake() {
+      const transition = currentTransition();
+      lake.innerHTML = "";
+
+      layout.forEach((kind, state) => {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        if (kind === "S") cell.classList.add("start");
+        if (kind === "H") cell.classList.add("hole");
+        if (kind === "G") cell.classList.add("goal");
+        if (state === transition.state || state === transition.nextState) {
+          cell.classList.add("active");
+        }
+
+        const stateId = document.createElement("div");
+        stateId.className = "state-id";
+        stateId.textContent = state;
+        cell.appendChild(stateId);
+
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent = kind;
+        cell.appendChild(label);
+
+        if (state === transition.state) {
+          const agent = document.createElement("div");
+          agent.className = "agent";
+          agent.textContent = "A";
+          cell.appendChild(agent);
+        }
+
+        const qMini = document.createElement("div");
+        qMini.className = "q-mini";
+        qMini.innerHTML = qTable[state].map(format).join("<br>");
+        cell.appendChild(qMini);
+
+        lake.appendChild(cell);
+      });
+    }
+
+    function renderFormula() {
+      for (let i = 0; i < 4; i += 1) {
+        document.querySelector(`#line${i}`).classList.toggle("active", i === currentLineIndex);
+      }
+    }
+
+    function renderMetrics() {
+      const transition = currentTransition();
+      const values = computeValues(transition);
+      document.querySelector("#stateValue").textContent = transition.state;
+      document.querySelector("#actionValue").textContent = transition.action;
+      document.querySelector("#nextStateValue").textContent = transition.nextState;
+      document.querySelector("#rewardValue").textContent = format(transition.reward);
+      document.querySelector("#bestNextValue").textContent = format(values.bestNextValue);
+      document.querySelector("#oldValue").textContent = format(values.oldValue);
+      document.querySelector("#learnedValue").textContent = format(values.learnedValue);
+      document.querySelector("#newValue").textContent = format(values.newValue);
+    }
+
+    function renderTable() {
+      qRows.innerHTML = "";
+      qTable.forEach((row, state) => {
+        const tr = document.createElement("tr");
+        const id = document.createElement("td");
+        id.textContent = state;
+        tr.appendChild(id);
+
+        row.forEach((value, column) => {
+          const td = document.createElement("td");
+          td.textContent = format(value);
+          if (lastChanged && lastChanged.state === state && lastChanged.column === column) {
+            td.classList.add("changed");
+          }
+          tr.appendChild(td);
+        });
+
+        qRows.appendChild(tr);
+      });
+    }
+
+    function render() {
+      renderLake();
+      renderFormula();
+      renderMetrics();
+      renderTable();
+    }
+
+    function advance() {
+      const transition = currentTransition();
+      const values = computeValues(transition);
+
+      if (currentLineIndex === 3) {
+        qTable[transition.state][values.column] = values.newValue;
+        lastChanged = { state: transition.state, column: values.column };
+        currentTransitionIndex = (currentTransitionIndex + 1) % transitions.length;
+        currentLineIndex = 0;
+      } else {
+        currentLineIndex += 1;
+      }
+
+      render();
+    }
+
+    function play() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+        playButton.textContent = "播放";
+        return;
+      }
+
+      playButton.textContent = "暂停";
+      timer = setInterval(advance, Number(speedInput.value));
+    }
+
+    function reset() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+
+      qTable = Array.from({ length: 16 }, () => [0, 0, 0, 0]);
+      currentTransitionIndex = 0;
+      currentLineIndex = 0;
+      lastChanged = null;
+      playButton.textContent = "播放";
+      render();
+    }
+
+    playButton.addEventListener("click", play);
+    stepButton.addEventListener("click", advance);
+    resetButton.addEventListener("click", reset);
+    speedInput.addEventListener("input", () => {
+      if (timer) {
+        clearInterval(timer);
+        timer = setInterval(advance, Number(speedInput.value));
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>

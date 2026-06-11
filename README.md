@@ -61,6 +61,64 @@ D:\Software\anaconda3\envs\robot\python.exe examples/03_custom_line_world.py
 - 如何定义 `observation_space` 和 `action_space`
 - 如何实现 `reset()` 和 `step()`
 
+### 第四课：规则策略
+
+运行：
+
+```powershell
+D:\Software\anaconda3\envs\robot\python.exe examples/04_rule_based_cartpole.py
+```
+
+重点看：
+
+- `policy` 如何把 observation 转成 action
+- 随机策略和规则策略的 reward 差异
+- 为什么一个简单规则也可能比随机动作更好
+
+### 动画演示：Q-learning 更新
+
+打开：
+
+```powershell
+visualizations/q_learning_update_animation.html
+```
+
+重点看：
+
+- Q 值如何从终点附近开始变大
+- `best_next_value` 如何把未来价值传回当前状态
+- `old_value` 如何逐步靠近 `learned_value`
+
+### 动画演示：强化学习整体流程
+
+打开：
+
+```powershell
+visualizations/rl_learning_story_animation.html
+```
+
+重点看：
+
+- `observation -> policy -> action -> reward -> Q update` 的完整链路
+- `epsilon` 如何控制探索和利用
+- `alpha` 和 `gamma` 如何影响 Q 值更新
+
+### HyperFrames 动画：FrozenLake Q-learning
+
+打开：
+
+```powershell
+hyperframes/frozenlake-q-learning/index.html
+```
+
+这是一个适合渲染成视频的 HyperFrames composition，按场景讲解 `train a small Q-learning agent on FrozenLake`：
+
+- FrozenLake 的 S/F/H/G 地图含义
+- Q 表如何表示状态动作价值
+- epsilon 如何从探索转向利用
+- Q-learning 四行更新公式
+- 奖励如何从 G 往前传播
+
 ## 3. 推荐理解顺序
 
 先不要急着上深度学习。你可以先问自己三个问题：

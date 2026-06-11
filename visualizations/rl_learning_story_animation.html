@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>强化学习入门动画</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --ink: #1f252d;
+      --muted: #66717f;
+      --line: #d9e0e8;
+      --blue: #1e88e5;
+      --green: #2e7d32;
+      --orange: #ef6c00;
+      --red: #c62828;
+      --gold: #d5a11e;
+      --dark: #242a32;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+    }
+
+    main {
+      width: min(1160px, calc(100vw - 28px));
+      margin: 22px auto;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .hint {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .stage {
+      display: grid;
+      grid-template-columns: minmax(340px, 470px) 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 10px 26px rgba(31, 41, 55, 0.06);
+    }
+
+    .lake {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      aspect-ratio: 1;
+    }
+
+    .cell {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #e8f3ff;
+      overflow: hidden;
+    }
+
+    .cell.start { background: #eaf6e8; }
+    .cell.hole { background: var(--dark); color: white; }
+    .cell.goal { background: #fff3c4; }
+    .cell.current { outline: 4px solid rgba(30, 136, 229, 0.35); outline-offset: -4px; }
+    .cell.next { outline: 4px solid rgba(239, 108, 0, 0.35); outline-offset: -4px; }
+
+    .id {
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .hole .id { color: #c5ccd6; }
+
+    .kind {
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .agent {
+      position: absolute;
+      width: 42%;
+      aspect-ratio: 1;
+      border-radius: 999px;
+      background: var(--blue);
+      color: white;
+      border: 4px solid white;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      box-shadow: 0 8px 16px rgba(30, 136, 229, 0.35);
+      transition: transform 240ms ease;
+    }
+
+    .q {
+      position: absolute;
+      right: 6px;
+      bottom: 5px;
+      font-family: Consolas, monospace;
+      font-size: 11px;
+      color: #39424e;
+      line-height: 1.25;
+      text-align: right;
+    }
+
+    .hole .q { color: #aab3bf; }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 14px;
+    }
+
+    button {
+      min-height: 38px;
+      border: 1px solid #b7c3cf;
+      border-radius: 6px;
+      background: #fff;
+      padding: 0 14px;
+      color: var(--ink);
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: white;
+      font-weight: 700;
+    }
+
+    .step-count {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .explain {
+      display: grid;
+      gap: 12px;
+    }
+
+    .title-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 12px;
+    }
+
+    .title-row h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .badge {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 10px;
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    .flow-box {
+      min-height: 76px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px;
+      background: #fbfcfe;
+    }
+
+    .flow-box.active {
+      border-color: var(--orange);
+      background: #fff7ef;
+    }
+
+    .flow-box span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .flow-box strong {
+      display: block;
+      font-size: 15px;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .story {
+      min-height: 108px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      padding: 13px 14px;
+      color: #2c333c;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .formula {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .formula-card {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 11px;
+      background: #fbfcfe;
+    }
+
+    .formula-card code {
+      display: block;
+      margin-bottom: 7px;
+      font-family: Consolas, monospace;
+      font-size: 14px;
+    }
+
+    .formula-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      padding: 10px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .metric strong {
+      display: block;
+      font-family: Consolas, monospace;
+      font-size: 17px;
+    }
+
+    .bar {
+      height: 8px;
+      border-radius: 999px;
+      background: #edf1f5;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .bar div {
+      height: 100%;
+      background: var(--blue);
+      width: 0%;
+      transition: width 220ms ease;
+    }
+
+    @media (max-width: 940px) {
+      .stage { grid-template-columns: 1fr; }
+      .flow { grid-template-columns: 1fr; }
+      .formula { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      header { align-items: start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>强化学习是怎么“学会走路”的</h1>
+        <p class="hint">用 FrozenLake 演示：观察状态、选择动作、得到奖励、更新 Q 表。</p>
+      </div>
+      <div class="badge">Gymnasium + Q-learning</div>
+    </header>
+
+    <div class="stage">
+      <section class="panel">
+        <div class="lake" id="lake"></div>
+        <div class="controls">
+          <button class="primary" id="playButton">播放</button>
+          <button id="nextButton">下一步</button>
+          <button id="resetButton">重置</button>
+          <div class="step-count" id="stepCount">1 / 8</div>
+        </div>
+      </section>
+
+      <section class="panel explain">
+        <div class="title-row">
+          <h2 id="title">1. 环境给出 observation</h2>
+          <div class="badge" id="phase">observation_space</div>
+        </div>
+
+        <div class="flow">
+          <div class="flow-box" id="flowObservation"><span>observation</span><strong id="obsText">state = 13</strong></div>
+          <div class="flow-box" id="flowPolicy"><span>policy</span><strong id="policyText">epsilon-greedy</strong></div>
+          <div class="flow-box" id="flowAction"><span>action</span><strong id="actionText">right</strong></div>
+          <div class="flow-box" id="flowReward"><span>reward</span><strong id="rewardText">0</strong></div>
+          <div class="flow-box" id="flowQ"><span>Q update</span><strong id="qText">等待更新</strong></div>
+        </div>
+
+        <div class="story" id="story"></div>
+
+        <div class="metrics">
+          <div class="metric">
+            <span>epsilon 探索概率</span>
+            <strong id="epsilonValue">0.80</strong>
+            <div class="bar"><div id="epsilonBar"></div></div>
+          </div>
+          <div class="metric">
+            <span>alpha 学习率</span>
+            <strong>0.80</strong>
+            <div class="bar"><div style="width:80%; background:var(--green);"></div></div>
+          </div>
+          <div class="metric">
+            <span>gamma 未来折扣</span>
+            <strong>0.95</strong>
+            <div class="bar"><div style="width:95%; background:var(--gold);"></div></div>
+          </div>
+          <div class="metric">
+            <span>new Q value</span>
+            <strong id="newQValue">0.00</strong>
+            <div class="bar"><div id="qBar"></div></div>
+          </div>
+        </div>
+
+        <div class="formula">
+          <div class="formula-card">
+            <code>best_next_value = max(Q[next_state])</code>
+            <p id="bestNextExplain">看下一格最好的未来价值。</p>
+          </div>
+          <div class="formula-card">
+            <code>learned = reward + gamma * best_next</code>
+            <p id="learnedExplain">当前奖励 + 折扣后的未来价值。</p>
+          </div>
+          <div class="formula-card">
+            <code>new = old + alpha * (learned - old)</code>
+            <p id="newExplain">旧经验向新目标靠近。</p>
+          </div>
+          <div class="formula-card">
+            <code>action = argmax(Q[state])</code>
+            <p id="actionExplain">训练后更多利用 Q 表，选择价值最高的动作。</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const map = [
+      "S", "F", "F", "F",
+      "F", "H", "F", "H",
+      "F", "F", "F", "H",
+      "H", "F", "F", "G",
+    ];
+
+    const actionName = ["left", "down", "right", "up"];
+    const alpha = 0.8;
+    const gamma = 0.95;
+
+    const steps = [
+      {
+        title: "1. 环境给出 observation",
+        phase: "observation_space",
+        state: 13,
+        nextState: 13,
+        action: "等待选择",
+        reward: 0,
+        epsilon: 0.8,
+        active: "flowObservation",
+        story: "智能体站在 state 13。FrozenLake 的 observation 很简单，就是当前格子的编号。环境不会直接告诉它完整答案，只告诉它现在在哪里。",
+      },
+      {
+        title: "2. policy 根据 observation 选 action",
+        phase: "policy",
+        state: 13,
+        nextState: 14,
+        action: "right",
+        reward: 0,
+        epsilon: 0.8,
+        active: "flowPolicy",
+        story: "policy 是从 observation 到 action 的规则。训练早期 epsilon 很高，智能体会经常随机探索，所以它可能试着向右走。",
+      },
+      {
+        title: "3. env.step(action) 推进环境",
+        phase: "action_space",
+        state: 13,
+        nextState: 14,
+        action: "right",
+        reward: 0,
+        epsilon: 0.8,
+        active: "flowAction",
+        story: "执行 right 后，智能体从 state 13 到 state 14。这一步还没有到终点，所以即时 reward 仍然是 0。",
+      },
+      {
+        title: "4. 终点附近先学到价值",
+        phase: "reward",
+        state: 14,
+        nextState: 15,
+        action: "right",
+        reward: 1,
+        epsilon: 0.5,
+        preset: [[14, 2, 0]],
+        update: [14, 2],
+        active: "flowReward",
+        story: "从 state 14 向右走到 G，拿到 reward = 1。于是 Q[14, right] 先变大，终点附近最先知道“这条路值钱”。",
+      },
+      {
+        title: "5. 奖励从 G 往前传播",
+        phase: "best_next_value",
+        state: 13,
+        nextState: 14,
+        action: "right",
+        reward: 0,
+        epsilon: 0.35,
+        preset: [[14, 2, 0.8]],
+        update: [13, 2],
+        active: "flowQ",
+        story: "现在 13 向右走虽然 reward = 0，但下一格 14 已经有价值。best_next_value 会把 14 的价值传回来，所以 Q[13, right] 也开始变大。",
+      },
+      {
+        title: "6. gamma 决定看多远",
+        phase: "gamma",
+        state: 9,
+        nextState: 13,
+        action: "down",
+        reward: 0,
+        epsilon: 0.25,
+        preset: [[14, 2, 0.8], [13, 2, 0.61]],
+        update: [9, 1],
+        active: "flowQ",
+        story: "更前面的 state 9 没有直接奖励，但它能走到 state 13。gamma = 0.95 表示未来奖励很重要，所以价值还能继续往前传。",
+      },
+      {
+        title: "7. alpha 决定信多少新经验",
+        phase: "alpha",
+        state: 8,
+        nextState: 9,
+        action: "right",
+        reward: 0,
+        epsilon: 0.15,
+        preset: [[14, 2, 0.8], [13, 2, 0.61], [9, 1, 0.46]],
+        update: [8, 2],
+        active: "flowQ",
+        story: "alpha = 0.8 表示比较相信新经验。新 Q 值不会凭空出现，而是 old_value 朝 learned_value 移动一大步。",
+      },
+      {
+        title: "8. epsilon 变小后更多利用",
+        phase: "epsilon",
+        state: 13,
+        nextState: 14,
+        action: "right",
+        reward: 0,
+        epsilon: 0.05,
+        preset: [[14, 2, 0.8], [13, 2, 0.61], [9, 1, 0.46], [8, 2, 0.35]],
+        active: "flowPolicy",
+        story: "训练后期 epsilon 很小，智能体主要选择 Q 值最高的动作。它不再只是乱试，而是开始稳定走向 G。",
+      },
+    ];
+
+    let index = 0;
+    let qTable = makeQTable();
+    let timer = null;
+
+    const lake = document.querySelector("#lake");
+    const playButton = document.querySelector("#playButton");
+    const nextButton = document.querySelector("#nextButton");
+    const resetButton = document.querySelector("#resetButton");
+
+    function makeQTable() {
+      return Array.from({ length: 16 }, () => [0, 0, 0, 0]);
+    }
+
+    function format(value) {
+      return Number(value).toFixed(2);
+    }
+
+    function prepareStep(step) {
+      qTable = makeQTable();
+      for (const item of step.preset || []) {
+        qTable[item[0]][item[1]] = item[2];
+      }
+
+      if (step.update) {
+        const [state, actionIndex] = step.update;
+        const bestNext = Math.max(...qTable[step.nextState]);
+        const oldValue = qTable[state][actionIndex];
+        const learned = step.reward + gamma * bestNext;
+        qTable[state][actionIndex] = oldValue + alpha * (learned - oldValue);
+      }
+    }
+
+    function stepValues(step) {
+      const actionIndex = actionName.indexOf(step.action);
+      const bestNext = Math.max(...qTable[step.nextState]);
+      const oldValue = actionIndex >= 0 ? qTable[step.state][actionIndex] : 0;
+      const learned = step.reward + gamma * bestNext;
+      return { actionIndex, bestNext, oldValue, learned };
+    }
+
+    function renderLake(step) {
+      lake.innerHTML = "";
+      map.forEach((kind, state) => {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        if (kind === "S") cell.classList.add("start");
+        if (kind === "H") cell.classList.add("hole");
+        if (kind === "G") cell.classList.add("goal");
+        if (state === step.state) cell.classList.add("current");
+        if (state === step.nextState && step.nextState !== step.state) cell.classList.add("next");
+
+        const id = document.createElement("div");
+        id.className = "id";
+        id.textContent = state;
+        cell.appendChild(id);
+
+        const label = document.createElement("div");
+        label.className = "kind";
+        label.textContent = kind;
+        cell.appendChild(label);
+
+        if (state === step.state) {
+          const agent = document.createElement("div");
+          agent.className = "agent";
+          agent.textContent = "A";
+          cell.appendChild(agent);
+        }
+
+        const q = document.createElement("div");
+        q.className = "q";
+        q.innerHTML = qTable[state].map(format).join("<br>");
+        cell.appendChild(q);
+
+        lake.appendChild(cell);
+      });
+    }
+
+    function render() {
+      const step = steps[index];
+      prepareStep(step);
+      const values = stepValues(step);
+
+      document.querySelector("#title").textContent = step.title;
+      document.querySelector("#phase").textContent = step.phase;
+      document.querySelector("#story").textContent = step.story;
+      document.querySelector("#stepCount").textContent = `${index + 1} / ${steps.length}`;
+
+      document.querySelector("#obsText").textContent = `state = ${step.state}`;
+      document.querySelector("#policyText").textContent = step.epsilon > 0.2 ? "多探索" : "多利用";
+      document.querySelector("#actionText").textContent = step.action;
+      document.querySelector("#rewardText").textContent = format(step.reward);
+      document.querySelector("#qText").textContent = step.update ? `Q[${step.update[0]}, ${actionName[step.update[1]]}]` : "等待更新";
+
+      for (const box of document.querySelectorAll(".flow-box")) {
+        box.classList.remove("active");
+      }
+      document.querySelector(`#${step.active}`).classList.add("active");
+
+      const newQ = step.update ? qTable[step.update[0]][step.update[1]] : values.oldValue;
+      document.querySelector("#epsilonValue").textContent = format(step.epsilon);
+      document.querySelector("#epsilonBar").style.width = `${step.epsilon * 100}%`;
+      document.querySelector("#newQValue").textContent = format(newQ);
+      document.querySelector("#qBar").style.width = `${Math.min(100, newQ * 100)}%`;
+
+      document.querySelector("#bestNextExplain").textContent = `当前 best_next_value = ${format(values.bestNext)}。`;
+      document.querySelector("#learnedExplain").textContent = `learned_value = ${format(step.reward)} + 0.95 * ${format(values.bestNext)} = ${format(values.learned)}。`;
+      document.querySelector("#newExplain").textContent = step.update
+        ? `更新后对应 Q 值变成 ${format(newQ)}。`
+        : "这一幕还没有更新 Q 表。";
+      document.querySelector("#actionExplain").textContent = step.epsilon > 0.2
+        ? "epsilon 较高，智能体更愿意试新动作。"
+        : "epsilon 较低，智能体更依赖 Q 表选择动作。";
+
+      renderLake(step);
+    }
+
+    function next() {
+      index = (index + 1) % steps.length;
+      render();
+    }
+
+    function play() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+        playButton.textContent = "播放";
+        return;
+      }
+      playButton.textContent = "暂停";
+      timer = setInterval(next, 2200);
+    }
+
+    function reset() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+      index = 0;
+      playButton.textContent = "播放";
+      render();
+    }
+
+    playButton.addEventListener("click", play);
+    nextButton.addEventListener("click", next);
+    resetButton.addEventListener("click", reset);
+    render();
+  </script>
+</body>
+</html>

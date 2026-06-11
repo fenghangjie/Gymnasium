@@ -29,9 +29,10 @@ def train() -> np.ndarray:
     alpha = 0.8
     gamma = 0.95
     epsilon = 1.0
-    epsilon_decay = 0.995
+    epsilon_decay = 0.9995
     min_epsilon = 0.05
-    episodes = 2_000
+    episodes = 20_000
+    training_wins = 0
 
     for episode in range(1, episodes + 1):
         state, _ = env.reset()
@@ -49,10 +50,14 @@ def train() -> np.ndarray:
 
             state = next_state
 
+        training_wins += int(reward > 0)
         epsilon = max(min_epsilon, epsilon * epsilon_decay)
 
-        if episode % 500 == 0:
-            print(f"episode={episode} epsilon={epsilon:.3f}")
+        if episode % 5_000 == 0:
+            print(
+                f"episode={episode} epsilon={epsilon:.3f} "
+                f"training_wins={training_wins}"
+            )
 
     env.close()
     return q_table
@@ -87,4 +92,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
