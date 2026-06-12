@@ -75,6 +75,34 @@ D:\Software\anaconda3\envs\robot\python.exe examples/04_rule_based_cartpole.py
 - 随机策略和规则策略的 reward 差异
 - 为什么一个简单规则也可能比随机动作更好
 
+### 第五课：PPO
+
+运行：
+
+```powershell
+D:\Software\anaconda3\envs\robot\python.exe examples/05_ppo_cartpole.py
+```
+
+看训练后的 CartPole 动画：
+
+```powershell
+D:\Software\anaconda3\envs\robot\python.exe examples/05_ppo_cartpole.py --load --watch --skip-clip-experiment
+```
+
+如果窗口没有弹出来，也可以导出 GIF：
+
+```powershell
+D:\Software\anaconda3\envs\robot\python.exe examples/05_ppo_cartpole.py --load --gif --skip-clip-experiment
+```
+
+重点看：
+
+- Actor 如何根据 observation 选择 action
+- Critic 如何估计当前 state 的价值
+- Advantage 为什么表示“比预期好多少”
+- `clip_range` 如何限制 PPO 每次策略更新的幅度
+- 训练后的平均 reward 是否接近 CartPole 的满分 500
+
 ### 动画演示：Q-learning 更新
 
 打开：

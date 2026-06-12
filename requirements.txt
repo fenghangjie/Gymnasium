@@ -1,3 +1,4 @@
 gymnasium[toy-text,classic-control]>=1.1.0
-numpy>=2.0.0
-
+imageio>=2.36.0
+numpy>=1.23.5,<2.0.0
+stable-baselines3>=2.6.0
